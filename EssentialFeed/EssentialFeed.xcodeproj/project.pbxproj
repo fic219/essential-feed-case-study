@@ -184,8 +184,8 @@
 				080EDEFE21B6DA7E00813479 /* EssentialFeedTests */,
 				0899395D220359C50031B03D /* EssentialFeedAPIEndToEndTests */,
 				0832C67E22A0223A00E1C5E9 /* EssentialFeedCacheIntegrationTests */,
-				0CE6A97A27A6015900D1A8E0 /* EssentialFeediOS */,
-				0CE6A98427A6015900D1A8E0 /* EssentialFeediOSTests */,
+				0CE6A99527A8781400D1A8E0 /* EssentialFeediOS */,
+				0CE6A99627A8782D00D1A8E0 /* EssentialFeediOSTests */,
 				080EDEF221B6DA7E00813479 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -348,14 +348,14 @@
 			path = "Feed API";
 			sourceTree = "<group>";
 		};
-		0CE6A97A27A6015900D1A8E0 /* EssentialFeediOS */ = {
+		0CE6A99527A8781400D1A8E0 /* EssentialFeediOS */ = {
 			isa = PBXGroup;
 			children = (
 			);
 			path = EssentialFeediOS;
 			sourceTree = "<group>";
 		};
-		0CE6A98427A6015900D1A8E0 /* EssentialFeediOSTests */ = {
+		0CE6A99627A8782D00D1A8E0 /* EssentialFeediOSTests */ = {
 			isa = PBXGroup;
 			children = (
 			);
