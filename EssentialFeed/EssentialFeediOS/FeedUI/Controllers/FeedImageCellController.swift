@@ -40,11 +40,7 @@ final class FeedImageCellController {
         }
         
         viewModel.onLoadStateChange = { [weak cell]  isLoading in
-            if isLoading {
-                cell?.feedImageContainer.startShimmering()
-            } else {
-                cell?.feedImageContainer.stopShimmering()
-            }
+            cell?.feedImageContainer.isShimmering = isLoading
         }
         
         viewModel.onShowRetyStatChange = { [weak cell] showRetry in
