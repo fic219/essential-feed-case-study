@@ -8,7 +8,7 @@ import UIKit
 import EssentialFeed
 
 final public class FeedViewController: UITableViewController, UITableViewDataSourcePrefetching {
-
+    
     var tableModel = [FeedImageCellController]() {
         didSet {
             self.tableView.reloadData()
