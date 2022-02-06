@@ -16,15 +16,8 @@ final class FeedImageCellController {
     }
     
     func view() -> UITableViewCell {
-        let cell = FeedImageCell()
-        bind(cell)
-        cell.locationContainer.isHidden = !viewModel.hasLocation
-        cell.locationLabel.text = viewModel.location
-        cell.descriptionLabel.text = viewModel.description
-        
-        cell.onRetry = viewModel.loadImage
+        let cell = binded(FeedImageCell())
         viewModel.loadImage()
-        
         return cell
     }
     
@@ -36,15 +29,18 @@ final class FeedImageCellController {
         viewModel.cancel()
     }
     
-    private func bind(_ cell: FeedImageCell) {
+    private func binded(_ cell: FeedImageCell) -> FeedImageCell{
+        cell.locationContainer.isHidden = !viewModel.hasLocation
+        cell.locationLabel.text = viewModel.location
+        cell.descriptionLabel.text = viewModel.description
+        cell.onRetry = viewModel.loadImage
+        
         viewModel.onImageLoad = { [weak cell] image in
             cell?.feedImageView.image = image
-            
         }
         
         viewModel.onLoadStateChange = { [weak cell]  isLoading in
             if isLoading {
-                cell?.feedImageView.image = nil
                 cell?.feedImageContainer.startShimmering()
             } else {
                 cell?.feedImageContainer.stopShimmering()
@@ -54,5 +50,7 @@ final class FeedImageCellController {
         viewModel.onShowRetyStatChange = { [weak cell] showRetry in
             cell?.feedImageRetryButton.isHidden = !showRetry
         }
+        
+        return cell
     }
 }
