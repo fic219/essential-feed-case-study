@@ -19,7 +19,7 @@ final class FeedPresenter {
     
     typealias Observer<T> = (T) -> Void
     
-    private var feedLoader: FeedLoader?
+    private var feedLoader: FeedLoader
     
     init(feedLoader: FeedLoader) {
         self.feedLoader = feedLoader
@@ -30,7 +30,7 @@ final class FeedPresenter {
     
     func loadFeed() {
         loadingView?.display(isLoading: true)
-        feedLoader?.load { [weak self] result in
+        feedLoader.load { [weak self] result in
             switch result {
             case let .success(feed):
                 self?.feedView?.display(feed: feed)
