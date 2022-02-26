@@ -43,9 +43,18 @@ class FeedImagePresenter {
             shouldRetry: true))
     }
     
+    func didFinishLoadingImageData(with data: Data, for model: FeedImage) {
+        guard let _ = imageTransformer(data) else {
+            return didFinishLoadingImageData(with: InvalidImageDataError(), for: model)
+        }
+    }
+    
     private let view: FeedImageView
-    init(view: FeedImageView) {
+    private let imageTransformer: (Data) -> Any?
+    private struct InvalidImageDataError: Error {}
+    init(view: FeedImageView, imageTransformer: @escaping (Data) -> Any?) {
         self.view = view
+        self.imageTransformer = imageTransformer
     }
 }
 
@@ -89,16 +98,34 @@ class FeedImagePresenterTests: XCTestCase {
         
     }
     
+    func test_failingImageTransformationDisplaysRety() {
+        let (sut, view) = makeSut(imageTransformer: fail)
+        
+        let feedImage = uniqueImage()
+        
+        sut.didFinishLoadingImageData(with: Data(), for: feedImage)
+        
+        let viewModel = view.messages.first
+        
+        XCTAssertEqual(viewModel?.isLoading, false)
+        XCTAssertEqual(viewModel?.description, feedImage.description)
+        XCTAssertEqual(viewModel?.location, feedImage.location)
+        XCTAssertEqual(viewModel?.shouldRetry, true)
+        XCTAssertNil(viewModel?.image)
+    }
     
-    private func makeSut(file: StaticString = #file, line: UInt = #line) -> (sut: FeedImagePresenter, view: ViewSpy) {
+    
+    private func makeSut(imageTransformer: @escaping (Data) -> Any? = { _ in return nil}, file: StaticString = #file, line: UInt = #line) -> (sut: FeedImagePresenter, view: ViewSpy) {
         let view = ViewSpy()
-        let sut = FeedImagePresenter(view: view)
+        let sut = FeedImagePresenter(view: view, imageTransformer: imageTransformer)
         trackForMemoryLeaks(view, file: file, line: line)
         trackForMemoryLeaks(sut, file: file, line: line)
         return (sut, view)
     }
     
-    
+    private var fail: (Data) -> Any? {
+        return { _ in nil }
+    }
     
     private class ViewSpy: FeedImageView {
         func display(_ model: FeedImageViewModel) {
