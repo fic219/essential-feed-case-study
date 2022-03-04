@@ -35,17 +35,14 @@ class FeedImageDataLoaderWithFallbackComposite: FeedImageDataLoader {
 class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
 
     func test_initDoesNotLoadAnything() {
-        let primaryLoader = LoaderSpy()
-        let fallbackLoader = LoaderSpy()
-        _ = FeedImageDataLoaderWithFallbackComposite(primaryLoader: primaryLoader, fallbackLoader: fallbackLoader)
+        let (primaryLoader, fallbackLoader, _) = makeSut()
+        
         XCTAssert(primaryLoader.loadedURLs.isEmpty)
         XCTAssert(fallbackLoader.loadedURLs.isEmpty)
     }
     
     func test_returnImageOnPrimaryLoadSuccess() {
-        let primaryLoader = LoaderSpy()
-        let fallbackLoader = LoaderSpy()
-        let sut = FeedImageDataLoaderWithFallbackComposite(primaryLoader: primaryLoader, fallbackLoader: fallbackLoader)
+        let (primaryLoader, _, sut) = makeSut()
         
         let expectedData = anyData()
         let exp = expectation(description: "Wait for load completion")
@@ -61,6 +58,16 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
         primaryLoader.complete(with: expectedData)
         wait(for: [exp], timeout: 1)
         
+    }
+    
+    private func makeSut(file: StaticString = #file, line: UInt = #line) -> (primaryLoader: LoaderSpy, fallbackLoader: LoaderSpy, sut: FeedImageDataLoaderWithFallbackComposite) {
+        let primaryLoader = LoaderSpy()
+        let fallbackLoader = LoaderSpy()
+        let sut = FeedImageDataLoaderWithFallbackComposite(primaryLoader: primaryLoader, fallbackLoader: fallbackLoader)
+        trackForMemoryLeaks(primaryLoader)
+        trackForMemoryLeaks(fallbackLoader)
+        trackForMemoryLeaks(sut)
+        return (primaryLoader, fallbackLoader, sut)
     }
     
     private class LoaderSpy: FeedImageDataLoader {
@@ -94,6 +101,12 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
     
     func anyData() -> Data {
         return Data("any data".utf8)
+    }
+    
+    private func trackForMemoryLeaks(_ instance: AnyObject, file: StaticString = #file, line: UInt = #line) {
+        addTeardownBlock { [weak instance] in
+            XCTAssertNil(instance, "Instance should have been deallocated. Potential memory leak.", file: file, line: line)
+        }
     }
 
 }
