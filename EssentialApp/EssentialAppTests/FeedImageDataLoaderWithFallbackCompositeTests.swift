@@ -90,6 +90,18 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
         primaryLoader.complete(with: anyData())
     }
     
+    func test_noNotReturnResultOnCancelAfterPrimaryLoaderFailedAndFallbackLoaderIsLoading() {
+        let (primaryLoader, fallbackLoader, sut) = makeSut()
+        
+        let task = sut.loadImageData(from: anyURL()) { _ in
+            XCTFail("should not receive any message")
+        }
+        primaryLoader.complete(with: anyNSError())
+        task.cancel()
+        fallbackLoader.complete(with: anyNSError())
+        
+    }
+    
     private func makeSut(file: StaticString = #file, line: UInt = #line) -> (primaryLoader: LoaderSpy, fallbackLoader: LoaderSpy, sut: FeedImageDataLoaderWithFallbackComposite) {
         let primaryLoader = LoaderSpy()
         let fallbackLoader = LoaderSpy()
