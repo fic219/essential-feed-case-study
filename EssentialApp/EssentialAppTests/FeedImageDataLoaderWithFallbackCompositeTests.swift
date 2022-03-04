@@ -9,10 +9,11 @@ import EssentialFeed
 
 class FeedImageDataLoaderWithFallbackComposite: FeedImageDataLoader {
     
-    struct FeedImageCompositeTask: FeedImageDataLoaderTask {
+    class FeedImageCompositeTask: FeedImageDataLoaderTask {
+        var wrapped: FeedImageDataLoaderTask?
         
         func cancel() {
-            
+            wrapped?.cancel()
         }
     }
     
@@ -25,17 +26,17 @@ class FeedImageDataLoaderWithFallbackComposite: FeedImageDataLoader {
     }
     
     func loadImageData(from url: URL, completion: @escaping (FeedImageDataLoader.Result) -> Void) -> FeedImageDataLoaderTask {
-        let task = primaryLoader.loadImageData(from: url) { [weak self] result in
+        let task = FeedImageCompositeTask()
+        task.wrapped = primaryLoader.loadImageData(from: url) { [weak self] result in
             switch result {
             case let .success(feedImageData):
                 completion(.success(feedImageData))
             case .failure:
-                let _ = self?.fallbackLoader.loadImageData(from: url, completion: completion)
+                task.wrapped = self?.fallbackLoader.loadImageData(from: url, completion: completion)
             }
         }
         return task
     }
-    
     
 }
 
@@ -78,6 +79,17 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
         }
     }
     
+    func test_cancelLoadWhenPrimaryLoaderIsLoadingDoesNotLoadAnything() {
+        let (primaryLoader, _, sut) = makeSut()
+        
+        let task = sut.loadImageData(from: anyURL()) { _ in
+            XCTFail("should not receive any message")
+        }
+        
+        task.cancel()
+        primaryLoader.complete(with: anyData())
+    }
+    
     private func makeSut(file: StaticString = #file, line: UInt = #line) -> (primaryLoader: LoaderSpy, fallbackLoader: LoaderSpy, sut: FeedImageDataLoaderWithFallbackComposite) {
         let primaryLoader = LoaderSpy()
         let fallbackLoader = LoaderSpy()
@@ -114,29 +126,37 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
     
     private class LoaderSpy: FeedImageDataLoader {
         
-        var messages = [(url: URL, completion: (FeedImageDataLoader.Result) -> Void)]()
+        var messages = [(url: URL, task: FeedImageCompositeTask)]()
         
         var loadedURLs: [URL] {
             return messages.map { $0.url}
         }
         
-        struct FeedImageCompositeTask: FeedImageDataLoaderTask {
+        class FeedImageCompositeTask: FeedImageDataLoaderTask {
+            
+            var completion: ((FeedImageDataLoader.Result) -> Void)?
+            
+            init(completion: @escaping (FeedImageDataLoader.Result) -> Void) {
+                self.completion = completion
+            }
+            
             func cancel() {
-                
+                completion = nil
             }
         }
         
         func loadImageData(from url: URL, completion: @escaping (FeedImageDataLoader.Result) -> Void) -> FeedImageDataLoaderTask {
-            messages.append((url, completion))
-            return FeedImageCompositeTask()
+            let task = FeedImageCompositeTask(completion: completion)
+            messages.append((url, task))
+            return task
         }
         
         func complete(with data: Data) {
-            messages.first?.completion(.success(data))
+            messages.first?.task.completion?(.success(data))
         }
         
         func complete(with error: Error) {
-            messages.first?.completion(.failure(error))
+            messages.first?.task.completion?(.failure(error))
         }
         
     }
