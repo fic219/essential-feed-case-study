@@ -25,7 +25,14 @@ class FeedImageDataLoaderWithFallbackComposite: FeedImageDataLoader {
     }
     
     func loadImageData(from url: URL, completion: @escaping (FeedImageDataLoader.Result) -> Void) -> FeedImageDataLoaderTask {
-        let task = primaryLoader.loadImageData(from: url, completion: completion)
+        let task = primaryLoader.loadImageData(from: url) { [weak self] result in
+            switch result {
+            case let .success(feedImageData):
+                completion(.success(feedImageData))
+            case .failure:
+                let _ = self?.fallbackLoader.loadImageData(from: url, completion: completion)
+            }
+        }
         return task
     }
     
@@ -58,6 +65,25 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
         primaryLoader.complete(with: expectedData)
         wait(for: [exp], timeout: 1)
         
+    }
+    
+    func test_returnResultOfFallbackLoaderOnPrimaryLoadFails() {
+        let (primaryLoader, fallbackLoader, sut) = makeSut()
+        
+        let expectedData = anyData()
+        let exp = expectation(description: "Wait for load completion")
+        let _ = sut.loadImageData(from: anyURL()) { result in
+            switch result {
+            case let .success(receivedData):
+                XCTAssertEqual(receivedData, expectedData)
+            case .failure:
+                XCTFail("Expected to success")
+            }
+            exp.fulfill()
+        }
+        primaryLoader.complete(with: anyNSError())
+        fallbackLoader.complete(with: expectedData)
+        wait(for: [exp], timeout: 1)
     }
     
     private func makeSut(file: StaticString = #file, line: UInt = #line) -> (primaryLoader: LoaderSpy, fallbackLoader: LoaderSpy, sut: FeedImageDataLoaderWithFallbackComposite) {
@@ -93,6 +119,10 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
             messages.first?.completion(.success(data))
         }
         
+        func complete(with error: Error) {
+            messages.first?.completion(.failure(error))
+        }
+        
     }
     
     private func anyURL() -> URL {
@@ -101,6 +131,10 @@ class FeedImageDataLoaderWithFallbackCompositeTests: XCTestCase {
     
     func anyData() -> Data {
         return Data("any data".utf8)
+    }
+    
+    func anyNSError() -> NSError {
+        return NSError(domain: "any error", code: 0)
     }
     
     private func trackForMemoryLeaks(_ instance: AnyObject, file: StaticString = #file, line: UInt = #line) {
