@@ -27,25 +27,31 @@ class FeedImageDataLoaderCacheDecorator: FeedImageDataLoader {
 class FeedImageDataLoaderCacheDecoratorTests: XCTestCase {
 
     func test_init_doesNotLoad() {
-        let decoratee = LoaderSpy()
-        let cache = CacheSpy()
-        _ = FeedImageDataLoaderCacheDecorator(decoratee: decoratee, cache: cache)
+        let (_, loader) = makeSut()
         
-        XCTAssertEqual(decoratee.loadedURLs, [])
+        XCTAssertEqual(loader.loadedURLs, [])
     }
     
     func test_load_deliversImageDataOnLoaderSuccess() {
         
         let url = anyURL()
         
-        let decoratee = LoaderSpy()
-        let cache = CacheSpy()
-        let sut = FeedImageDataLoaderCacheDecorator(decoratee: decoratee, cache: cache)
+        let (sut, loader) = makeSut()
         
         _ = sut.loadImageData(from: url) { _ in }
         
-        XCTAssertEqual(decoratee.loadedURLs, [url])
+        XCTAssertEqual(loader.loadedURLs, [url])
         
+    }
+    
+    private func makeSut(file: StaticString = #file, line: UInt = #line) -> (sut: FeedImageDataLoaderCacheDecorator, loader: LoaderSpy) {
+        let decoratee = LoaderSpy()
+        let cache = CacheSpy()
+        let sut = FeedImageDataLoaderCacheDecorator(decoratee: decoratee, cache: cache)
+        trackForMemoryLeaks(decoratee, file: file, line: line)
+        trackForMemoryLeaks(cache, file: file, line: line)
+        trackForMemoryLeaks(sut, file: file, line: line)
+        return (sut, decoratee)
     }
     
     private func expect(_ sut: FeedImageDataLoader, toCompleteWith expectedResult: FeedImageDataLoader.Result, when action: () -> Void, file: StaticString = #file, line: UInt = #line) {
