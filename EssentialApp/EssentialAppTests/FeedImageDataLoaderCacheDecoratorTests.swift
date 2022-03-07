@@ -18,7 +18,15 @@ class FeedImageDataLoaderCacheDecorator: FeedImageDataLoader {
     }
     
     func loadImageData(from url: URL, completion: @escaping (FeedImageDataLoader.Result) -> Void) -> FeedImageDataLoaderTask {
-        return decoratee.loadImageData(from: url, completion: completion)
+        return decoratee.loadImageData(from: url) { [weak self] result in
+            switch result {
+            case let .success(data):
+                self?.cache.save(data, for: url) { _ in }
+                completion(result)
+            case .failure:
+                completion(result)
+            }
+        }
     }
     
     
@@ -32,7 +40,7 @@ class FeedImageDataLoaderCacheDecoratorTests: XCTestCase {
         XCTAssertEqual(loader.loadedURLs, [])
     }
     
-    func test_load_deliversImageDataOnLoaderSuccess() {
+    func test_load_loadsFromURL() {
         
         let url = anyURL()
         
@@ -42,6 +50,54 @@ class FeedImageDataLoaderCacheDecoratorTests: XCTestCase {
         
         XCTAssertEqual(loader.loadedURLs, [url])
         
+    }
+    
+    func test_cancelLoadImageData_cancelsLoaderTask() {
+        
+        let url = anyURL()
+        
+        let (sut, loader) = makeSut()
+        
+        let task = sut.loadImageData(from: anyURL(), completion: { _ in })
+        
+        task.cancel()
+        
+        XCTAssertEqual(loader.cancelledURLs, [url])
+    }
+    
+    func test_load_deliversImageDataOnLoaderSuccess() {
+        
+        let imagedata = anyData()
+        
+        let (sut, loader) = makeSut()
+        
+        expect(sut, toCompleteWith: .success(imagedata)) {
+            loader.complete(with: imagedata)
+        }
+    }
+    
+    func test_loadImageData_deliversErrorOnLoaderFailure() {
+        let error = anyNSError()
+        
+        let (sut, loader) = makeSut()
+        
+        expect(sut, toCompleteWith: .failure(error)) {
+            loader.complete(with: error)
+        }
+    }
+    
+    func test_loadImageData_cacheReceivesSaveOnSuccesLoad() {
+        
+        let url = anyURL()
+        let data = anyData()
+        let loader = LoaderSpy()
+        let cache = CacheSpy()
+        let sut = FeedImageDataLoaderCacheDecorator(decoratee: loader, cache: cache)
+        
+        _ = sut.loadImageData(from: url, completion: { _ in })
+        loader.complete(with: data)
+        
+        XCTAssertEqual(cache.receivedMessages, [.save(url: url, data: data)])
     }
     
     private func makeSut(file: StaticString = #file, line: UInt = #line) -> (sut: FeedImageDataLoaderCacheDecorator, loader: LoaderSpy) {
@@ -109,8 +165,14 @@ class FeedImageDataLoaderCacheDecoratorTests: XCTestCase {
     
     private class CacheSpy: FeedImageDataCache {
         
+        private(set) var receivedMessages = [Message]()
+        
+        enum Message: Equatable {
+            case save(url: URL, data: Data)
+        }
+        
         func save(_ data: Data, for url: URL, completion: @escaping (SaveResult) -> Void) {
-            
+            receivedMessages.append(.save(url: url, data: data))
         }
         
         
