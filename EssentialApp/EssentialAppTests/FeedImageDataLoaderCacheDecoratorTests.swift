@@ -26,6 +26,14 @@ class FeedImageDataLoaderCacheDecorator: FeedImageDataLoader {
 
 class FeedImageDataLoaderCacheDecoratorTests: XCTestCase {
 
+    func test_init_doesNotLoad() {
+        let decoratee = LoaderSpy()
+        let cache = CacheSpy()
+        _ = FeedImageDataLoaderCacheDecorator(decoratee: decoratee, cache: cache)
+        
+        XCTAssertEqual(decoratee.loadedURLs, [])
+    }
+    
     func test_load_deliversImageDataOnLoaderSuccess() {
         
         let url = anyURL()
