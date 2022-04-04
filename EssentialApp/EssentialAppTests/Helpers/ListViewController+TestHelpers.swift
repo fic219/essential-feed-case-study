@@ -20,6 +20,14 @@ extension ListViewController {
         return refreshControl?.isRefreshing == true
     }
     
+    var isShowingLoadMoreFeedIndicator: Bool {
+        return loadMoreFeedCell()?.isLoading == true
+    }
+    
+    private func loadMoreFeedCell() -> LoadMoreCell? {
+        cell(row: 0, section: feedLoadMoreSection) as? LoadMoreCell
+    }
+    
     func simulateErrorViewTap() {
         errorView.simulateTap()
     }
